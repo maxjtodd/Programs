@@ -25,15 +25,23 @@ import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.File;
 import java.net.Socket;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.Scanner;
+import java.text.SimpleDateFormat;  
+import java.util.Date; 
+
 
 public class WebWorker implements Runnable
 {
 
 	private Socket socket;
+	
+	private File file;
+	private boolean error404;
 
 	/**
 	 * Constructor: must have a valid open socket
@@ -41,6 +49,8 @@ public class WebWorker implements Runnable
 	public WebWorker(Socket s)
 	{
 		socket = s;
+		file = null;
+		error404 = false;
 	}
 
 	/**
@@ -72,9 +82,11 @@ public class WebWorker implements Runnable
 	/**
 	 * Read the HTTP request header.
 	 **/
-	private void readHTTPRequest(InputStream is)
+	private File readHTTPRequest(InputStream is)
 	{
 		String line;
+		File f;
+		
 		BufferedReader r = new BufferedReader(new InputStreamReader(is));
 		while (true)
 		{
@@ -86,6 +98,42 @@ public class WebWorker implements Runnable
 				System.err.println("Request line: (" + line + ")");
 				if (line.length() == 0)
 					break;
+				
+				
+				// check if file exists
+				if (line.contains("GET ")) {
+					
+					// get the file path in line 
+					line = line.replace("GET /", "");
+					line = line.replace(" HTTP/1.1", "");
+					
+					f = new File(line);
+					
+					
+					// file exists, set private file object to a file object with the file path
+					if (f.exists()) {
+						file = new File(line);
+						error404 = false;
+					}
+					// file doesn't exist
+					else {
+						// file accessed isn't home page, 404 error
+						if (!line.contains("favicon.ico") && !line.equals("")) {							
+							error404 = true;
+							System.out.println("NO FAVICON OR BLANK");
+						}
+						// file accessed is home page
+						else {
+							error404 = false;
+						}
+						
+					}
+					
+					System.out.println(f.getAbsolutePath() + "\t" + line + "\terror404 = " + error404);
+				}
+				
+				
+				
 			}
 			catch (Exception e)
 			{
@@ -93,8 +141,12 @@ public class WebWorker implements Runnable
 				break;
 			}
 		}
-		return;
+		return null;
 	}
+	
+	
+	
+	
 
 	/**
 	 * Write the HTTP header lines to the client network connection.
@@ -109,7 +161,10 @@ public class WebWorker implements Runnable
 		Date d = new Date();
 		DateFormat df = DateFormat.getDateTimeInstance();
 		df.setTimeZone(TimeZone.getTimeZone("GMT"));
-		os.write("HTTP/1.1 200 OK\n".getBytes());
+		if (!error404)
+			os.write("HTTP/1.1 200 OK\n".getBytes());
+		else
+			os.write("HTTP/1.1 404 NOT FOUND\n".getBytes());
 		os.write("Date: ".getBytes());
 		os.write((df.format(d)).getBytes());
 		os.write("\n".getBytes());
@@ -131,10 +186,61 @@ public class WebWorker implements Runnable
 	 *          is the OutputStream object to write to
 	 **/
 	private void writeContent(OutputStream os) throws Exception
-	{
-		os.write("<html><head></head><body>\n".getBytes());
-		os.write("<h3>My web server works!</h3>\n".getBytes());
-		os.write("</body></html>\n".getBytes());
+	{	
+		// 404 error, show error page
+		if (error404) {
+			
+			os.write("<html><head></head><body>\n".getBytes());
+			os.write("<h3>ERROR 404</h3>\n".getBytes());
+			os.write("</body></html>\n".getBytes());
+			
+		}
+		// no file was requested, show home page
+		else if (file == null) {
+			os.write("<html><head></head><body>\n".getBytes());
+			os.write("<h3>My web server works!</h3>\n".getBytes());
+			os.write("</body></html>\n".getBytes());
+		}
+		// file was requested, show file contents
+		else {
+			
+			Scanner reader = new Scanner(file);
+			String line = "";
+			
+			while(reader.hasNextLine()) {
+				
+				line = reader.nextLine();
+				line = convertTags(line);
+				os.write(line.getBytes());
+				
+				
+			}
+			
+		}
+		
 	}
+	
+	
+	/**
+	 * Converts custom HTML tags in a given string to desired output
+	 * @param line String to convert tags 
+	 * @return String with converted tags
+	 */
+	private String convertTags(String line) {
+		
+		String output = line;
+		
+		// formatting <cs371date> tag 
+		SimpleDateFormat format = new SimpleDateFormat("MM/dd/yyyy");  
+	    Date currentDate = new Date(); 
+		output = output.replaceAll("<cs371date>", format.format(currentDate));
+		
+		// formatting <cs371server> tag
+		output = output.replaceAll("<cs371server>", "Max Todd's Server");
+		
+		return output;
+	}
+	
+	
 
 } // end class

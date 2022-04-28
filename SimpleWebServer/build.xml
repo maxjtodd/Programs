@@ -1,0 +1,49 @@
+<project name="SimpleWebServer" basedir=".">
+
+        <description>
+
+                Simple Web Server
+
+         </description>
+
+
+
+        <property name="src" location="./src/"/>
+
+        <property name="build" location="./bin/"/>
+
+
+
+
+
+        <target name="build">
+
+                <tstamp/>
+
+                <mkdir dir="${build}"/>
+
+                <javac srcdir="${src}" destdir = "${build}"/>
+
+        </target>
+
+
+
+
+
+        <target name="compile" description = "Compile the Program">
+
+                <javac srcdir="${src}" destdir="${build}"/>
+
+        </target>
+
+
+
+
+
+        <target name="run" depends="build">
+
+                <java classname="edu.nmsu.cs.webserver.WebServer" classpath="${build}"/>
+
+        </target>
+
+</project>
