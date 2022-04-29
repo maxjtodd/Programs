@@ -1,0 +1,14 @@
+ESTIMATE:
+
+Thought/Design: 1/2 hr
+Programming: 1 hr
+Debugging: 1/2 hr
+TOTAL: 2 hr
+
+
+ACTUAL:
+
+Thought/Design: 1 hr
+Programming: 3/4 hr
+Debugging: 4 hr (ANT troubles, java version troubles, debugging)
+TOTAL: 5 3/4 hr
