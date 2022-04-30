@@ -1,1 +1,3 @@
 /bin/
+# leave out test data
+./Coverage
